@@ -1,0 +1,294 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private authenticated customer profile tied to a verified email account.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full display name of the customer.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the customer.",
+          "maxLength": 200
+        },
+        "addr": {
+          "type": "string",
+          "description": "Default shipping address for checkout.",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": ["uid", "name", "email", "addr", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order record created upon completing checkout and updatable by verified admin.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "no": {
+          "type": "string",
+          "description": "Order number (e.g. CCN-123456) matching the document ID.",
+          "maxLength": 16,
+          "pattern": "^CCN-[0-9]{6}$"
+        },
+        "date": {
+          "type": "string",
+          "description": "Formatted order date string.",
+          "minLength": 4,
+          "maxLength": 80
+        },
+        "name": {
+          "type": "string",
+          "description": "Recipient name.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "addr": {
+          "type": "string",
+          "description": "Shipping address.",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "method": {
+          "type": "string",
+          "description": "Selected payment method.",
+          "enum": [
+            "QRIS",
+            "E-Wallet (GoPay / DANA)",
+            "Virtual Account (transfer bank)",
+            "Kartu Debit/Kredit"
+          ],
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Order fulfillment and payment status.",
+          "enum": [
+            "Sudah dibayar (QRIS)",
+            "Menunggu pembayaran",
+            "Dibayar",
+            "Dikemas",
+            "Dikirim",
+            "Tiba"
+          ],
+          "maxLength": 40
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of ordered cart items (max 20)."
+        },
+        "sub": {
+          "type": "number",
+          "description": "Order subtotal in IDR."
+        },
+        "disc": {
+          "type": "number",
+          "description": "Discount amount in IDR."
+        },
+        "total": {
+          "type": "number",
+          "description": "Final total in IDR."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the order was created."
+        }
+      },
+      "required": [
+        "userId",
+        "no",
+        "date",
+        "name",
+        "addr",
+        "method",
+        "status",
+        "items",
+        "sub",
+        "disc",
+        "total",
+        "createdAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Trusted admin role assignment document keyed by UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Publicly readable website content and branding settings managed by Admin.",
+      "type": "object",
+      "properties": {
+        "announcement": { "type": "string", "maxLength": 200 },
+        "heroPill": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "heroTitle": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "heroSubtitle": { "type": "string", "minLength": 2, "maxLength": 400 },
+        "aboutSummary": { "type": "string", "minLength": 2, "maxLength": 1000 },
+        "visi": { "type": "string", "minLength": 2, "maxLength": 600 },
+        "tujuan": { "type": "string", "minLength": 2, "maxLength": 1200 },
+        "whatsapp": { "type": "string", "minLength": 6, "maxLength": 25, "pattern": "^[0-9]+$" },
+        "socialHandle": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "footerText": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "announcement",
+        "heroPill",
+        "heroTitle",
+        "heroSubtitle",
+        "aboutSummary",
+        "visi",
+        "tujuan",
+        "whatsapp",
+        "socialHandle",
+        "footerText",
+        "updatedAt"
+      ]
+    },
+    "CatalogProduct": {
+      "title": "CatalogProduct",
+      "description": "Storefront bag product managed by Admin.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "desc": { "type": "string", "minLength": 2, "maxLength": 500 },
+        "price": { "type": "number" },
+        "oldPrice": { "type": "number" },
+        "category": {
+          "type": "string",
+          "enum": ["Tas Rajut", "Simpul Tali", "Kain Perca"],
+          "maxLength": 40
+        },
+        "badge": {
+          "type": "string",
+          "enum": ["", "Terlaris", "Baru", "Diskon"],
+          "maxLength": 20
+        },
+        "image": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "material": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "technique": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "dimensions": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "active": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "name",
+        "desc",
+        "price",
+        "oldPrice",
+        "category",
+        "badge",
+        "image",
+        "material",
+        "technique",
+        "dimensions",
+        "active",
+        "updatedAt"
+      ]
+    },
+    "FaqItem": {
+      "title": "FaqItem",
+      "description": "Public FAQ entry managed by Admin.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "answer": { "type": "string", "minLength": 3, "maxLength": 1000 },
+        "sortOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "answer", "sortOrder", "active", "updatedAt"]
+    },
+    "ForumPost": {
+      "title": "ForumPost",
+      "description": "Customer Q&A post in Forum with Admin answer.",
+      "type": "object",
+      "properties": {
+        "authorUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "n": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "q": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "a": { "type": "string", "maxLength": 1000 },
+        "visible": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorUid", "n", "q", "a", "visible", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Explicit admin access control records."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private profile document per verified user."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Order records belonging to the user."
+    },
+    "/site_config/{configId}": {
+      "schema": { "$ref": "#/entities/SiteConfig" },
+      "description": "Public website copy, contact details, and announcement config."
+    },
+    "/site_products/{productId}": {
+      "schema": { "$ref": "#/entities/CatalogProduct" },
+      "description": "Public product catalog documents editable by Admin."
+    },
+    "/faq_items/{faqId}": {
+      "schema": { "$ref": "#/entities/FaqItem" },
+      "description": "Public FAQ questions & answers editable by Admin."
+    },
+    "/forum_posts/{postId}": {
+      "schema": { "$ref": "#/entities/ForumPost" },
+      "description": "Public forum Q&A entries."
+    }
+  }
+}

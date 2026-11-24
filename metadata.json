@@ -1,0 +1,8 @@
+{
+  "name": "CCN (Creative Craft Nation)",
+  "description": "Website resmi CCN (Creative Craft Nation) yang menghadirkan koleksi tas kerajinan tangan handmade, sistem pembayaran, materi belajar, forum tanya jawab, profil kelompok, lacak pesanan, dan maskot WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
