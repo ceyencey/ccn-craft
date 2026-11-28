@@ -54,14 +54,14 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
     };
   }, [showIntro]);
 
-  // Particle canvas
+  // Lightweight Particle canvas (throttled FPS & reduced count for smooth mobile performance)
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
     const canvas = document.createElement('canvas');
     canvas.id = 'pt';
     canvas.setAttribute('aria-hidden', 'true');
     document.body.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) {
       canvas.remove();
       return;
@@ -70,6 +70,7 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
     let W = 0;
     let H = 0;
     let dpr = 1;
+    let isMobile = false;
     let ps: { x: number; y: number; vx: number; vy: number; r: number; z: number; s: boolean }[] = [];
     let mx = -999;
     let my = -999;
@@ -77,6 +78,7 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
     let last = window.scrollY;
     let tc = 0;
     let raf = 0;
+    let lastFrameTime = 0;
 
     const readCol = () => {
       const v = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
@@ -88,23 +90,26 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
     };
 
     const init = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = window.innerWidth;
       H = window.innerHeight;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
+      isMobile = W < 760;
+      dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      let n = Math.max(18, Math.min(70, Math.round((W * H) / 20000)));
-      if (W < 760) n = Math.min(n, 30);
+
+      const n = isMobile
+        ? Math.max(7, Math.min(11, Math.round((W * H) / 48000)))
+        : Math.max(12, Math.min(24, Math.round((W * H) / 55000)));
       ps = [];
       for (let i = 0; i < n; i++) {
         ps.push({
           x: Math.random() * W,
           y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
-          r: 1.2 + Math.random() * 2,
-          z: 0.4 + Math.random() * 0.6,
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: (Math.random() - 0.5) * 0.45,
+          r: 1.3 + Math.random() * 1.8,
+          z: 0.45 + Math.random() * 0.55,
           s: Math.random() < 0.3,
         });
       }
@@ -123,32 +128,50 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
       last = window.scrollY;
       for (let i = 0; i < ps.length; i++) {
         const p = ps[i];
-        p.y -= d * 0.25 * p.z;
+        p.y -= d * 0.2 * p.z;
         if (p.y < -10) p.y += H + 20;
         else if (p.y > H + 10) p.y -= H + 20;
       }
     };
 
     window.addEventListener('resize', init);
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    document.addEventListener('mouseleave', onMouseLeave);
+    if (!window.matchMedia('(hover: none)').matches) {
+      window.addEventListener('mousemove', onMouseMove, { passive: true });
+      document.addEventListener('mouseleave', onMouseLeave);
+    }
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    const loop = () => {
+    const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (document.hidden) return;
+
+      const minInterval = isMobile ? 42 : 33; // ~24 FPS mobile, ~30 FPS desktop
+      if (now - lastFrameTime < minInterval) return;
+      lastFrameTime = now;
+
       if (++tc % 120 === 1) readCol();
       ctx.clearRect(0, 0, W, H);
+
+      const linkDistSq = isMobile ? 9000 : 12100;
+      const mouseActive = !isMobile && mx > -100;
+
       for (let i = 0; i < ps.length; i++) {
         const p = ps[i];
-        const dx = p.x - mx;
-        const dy = p.y - my;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 130 && d > 0) {
-          const k = ((130 - d) / 130) * 0.9;
-          p.x += (dx / d) * k;
-          p.y += (dy / d) * k;
+        let d = 9999;
+        if (mouseActive) {
+          const dx = p.x - mx;
+          const dy = p.y - my;
+          const dSq = dx * dx + dy * dy;
+          if (dSq < 25600) {
+            d = Math.sqrt(dSq);
+            if (d < 130 && d > 0) {
+              const k = ((130 - d) / 130) * 0.85;
+              p.x += (dx / d) * k;
+              p.y += (dy / d) * k;
+            }
+          }
         }
+
         p.x += p.vx * p.z;
         p.y += p.vy * p.z;
         if (p.x < -10) p.x = W + 10;
@@ -158,7 +181,7 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, 6.2832);
-        ctx.fillStyle = `rgba(${p.s ? '14,165,233' : acc},${0.25 + p.z * 0.4})`;
+        ctx.fillStyle = `rgba(${p.s ? '14,165,233' : acc},${0.22 + p.z * 0.35})`;
         ctx.fill();
 
         for (let j = i + 1; j < ps.length; j++) {
@@ -166,20 +189,21 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
           const ex = p.x - q.x;
           const ey = p.y - q.y;
           const dd = ex * ex + ey * ey;
-          if (dd < 14400) {
+          if (dd < linkDistSq) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(${acc},${0.16 * (1 - dd / 14400)})`;
+            ctx.strokeStyle = `rgba(${acc},${0.14 * (1 - dd / linkDistSq)})`;
             ctx.lineWidth = 1;
             ctx.stroke();
           }
         }
+
         if (d < 160) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(mx, my);
-          ctx.strokeStyle = `rgba(${acc},${0.22 * (1 - d / 160)})`;
+          ctx.strokeStyle = `rgba(${acc},${0.2 * (1 - d / 160)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
         }
@@ -188,7 +212,7 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
 
     readCol();
     init();
-    loop();
+    raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
