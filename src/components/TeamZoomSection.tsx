@@ -51,9 +51,9 @@ export function TeamZoomSection() {
       const r = src.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const s = Math.min((vh * 0.6) / r.height, (vw * 0.84) / r.width, 1.62);
+      const s = Math.min((vh * 0.54) / r.height, (vw * 0.8) / r.width, 1.62);
       const cx = vw / 2;
-      const cy = vh / 2 - 14;
+      const cy = vh / 2 - 18;
       const g = {
         s,
         dx: cx - (r.left + r.width / 2),
@@ -89,7 +89,7 @@ export function TeamZoomSection() {
         const spanEl = cap.querySelector('span');
         if (bEl) bEl.textContent = name;
         if (spanEl) spanEl.textContent = `${role} · NIM ${nim}`;
-        cap.style.top = `${g.cy + g.h / 2 + 24}px`;
+        cap.style.top = `${Math.min(vh - 96, g.cy + g.h / 2 + 20)}px`;
       }
       if (zg) {
         zg.style.background = `radial-gradient(circle,${col} 0%,transparent 62%)`;

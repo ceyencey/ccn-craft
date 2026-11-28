@@ -247,6 +247,29 @@ export function EffectsLayer({ currentPage }: EffectsLayerProps) {
     };
   }, []);
 
+  // Cursor-following Liquid Glass specular coordinates on buttons & controls
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const TARGET_SELECTOR =
+      '.btn, .fchip, .hbt, .at, .rp-ref, .rp-fbtn, .adm-preset, .opt, .fab, .links a';
+
+    const updatePointer = (e: PointerEvent) => {
+      const target = (e.target as Element | null)?.closest?.(TARGET_SELECTOR) as HTMLElement | null;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      target.style.setProperty('--mx', `${(e.clientX - rect.left).toFixed(1)}px`);
+      target.style.setProperty('--my', `${(e.clientY - rect.top).toFixed(1)}px`);
+    };
+
+    window.addEventListener('pointermove', updatePointer, { passive: true });
+    window.addEventListener('pointerdown', updatePointer, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', updatePointer);
+      window.removeEventListener('pointerdown', updatePointer);
+    };
+  }, []);
+
   // Scroll to top FAB visibility
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 400);

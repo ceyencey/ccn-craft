@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { EyeOff, KeyRound, Lock, ShieldCheck } from 'lucide-react';
+import { EyeOff, KeyRound, Lock, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { EffectsLayer } from './components/EffectsLayer';
@@ -90,6 +90,16 @@ function readHashPage(): PageId {
 export default function App() {
   const [page, setPage] = useState<PageId>(readHashPage);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const linksRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = linksRef.current;
+    if (!container) return;
+    const active = container.querySelector('a.on') as HTMLElement | null;
+    if (active && container.scrollWidth > container.clientWidth) {
+      active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [page]);
 
   // Toast
   const [toastMsg, setToastMsg] = useState('');
@@ -816,7 +826,7 @@ export default function App() {
             >
               <span className="lg" style={{ width: 72, height: 44 }} />
             </a>
-            <div className="links">
+            <div className="links" ref={linksRef}>
               {(
                 [
                   ['beranda', 'Beranda'],
@@ -841,7 +851,7 @@ export default function App() {
                 </a>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="nav-actions">
               {isAdmin && (
                 <button
                   className={`btn ${page === 'admin' ? '' : 'o'}`}
@@ -879,8 +889,17 @@ export default function App() {
               >
                 ♥ <span id="wn">{wishlist.length}</span>
               </button>
-              <button className="btn o" type="button" onClick={() => setCartOpen(true)}>
-                Keranjang (<span id="cn" className={cartBump ? 'bump' : ''}>{totalCartQty}</span>)
+              <button
+                className="btn o nav-cart"
+                type="button"
+                aria-label={`Keranjang (${totalCartQty})`}
+                onClick={() => setCartOpen(true)}
+              >
+                <ShoppingBag size={15} className="nav-cart-ico" aria-hidden="true" />
+                <span className="nav-cart-lbl">Keranjang</span>{' '}
+                <span>
+                  (<span id="cn" className={cartBump ? 'bump' : ''}>{totalCartQty}</span>)
+                </span>
               </button>
             </div>
           </nav>
@@ -901,7 +920,7 @@ export default function App() {
               <span className="pill">{siteConfig.heroPill}</span>
               <h1>{siteConfig.heroTitle}</h1>
               <p>{siteConfig.heroSubtitle}</p>
-              <p>
+              <div className="cta-row">
                 <a
                   className="btn"
                   href="#produk"
@@ -911,7 +930,7 @@ export default function App() {
                   }}
                 >
                   Belanja Sekarang
-                </a>{' '}
+                </a>
                 <a
                   className="btn o"
                   href="#belajar"
@@ -922,7 +941,7 @@ export default function App() {
                 >
                   Pelajari Cara Membuat
                 </a>
-              </p>
+              </div>
             </div>
             <div className="ph" style={{ height: 300 }}>
               <img
@@ -958,7 +977,7 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <p style={{ marginTop: 24 }}>
+            <div className="cta-row" style={{ marginTop: 22 }}>
               <a
                 className="btn"
                 href="#produk"
@@ -968,7 +987,7 @@ export default function App() {
                 }}
               >
                 Lihat Semua Produk
-              </a>{' '}
+              </a>
               <a
                 className="btn o"
                 href="#tentang"
@@ -979,14 +998,13 @@ export default function App() {
               >
                 Kenali CCN
               </a>
-            </p>
+            </div>
           </div>
         </section>
 
         <section
           data-pg="beranda"
-          className={page === 'beranda' ? 'show' : ''}
-          style={{ background: 'var(--card)' }}
+          className={`${page === 'beranda' ? 'show ' : ''}sec-alt`}
         >
           <div className="w">
             <h2>Cara Memesan</h2>
@@ -1148,8 +1166,7 @@ export default function App() {
         {/* ==================== TENTANG ==================== */}
         <section
           data-pg="tentang"
-          className={page === 'tentang' ? 'show' : ''}
-          style={{ background: 'var(--card)' }}
+          className={`${page === 'tentang' ? 'show ' : ''}sec-alt`}
         >
           <div className="w">
             <h2>Tentang CCN</h2>
@@ -1497,8 +1514,7 @@ export default function App() {
         {/* ==================== BELAJAR ==================== */}
         <section
           data-pg="belajar"
-          className={page === 'belajar' ? 'show' : ''}
-          style={{ background: 'var(--card)' }}
+          className={`${page === 'belajar' ? 'show ' : ''}sec-alt`}
         >
           <div className="w">
             <h2>Materi Pembelajaran</h2>
@@ -1681,7 +1697,7 @@ export default function App() {
             <p className="sub">Masukkan nomor pesanan untuk melihat status pengirimannya.</p>
             <div className="card" style={{ maxWidth: 720 }}>
               <label htmlFor="tkn">Nomor pesanan</label>
-              <div className="row" style={{ gap: 8 }}>
+              <div className="row track-row" style={{ gap: 8 }}>
                 <input
                   id="tkn"
                   value={trackInput}
