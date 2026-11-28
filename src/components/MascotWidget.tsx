@@ -14,6 +14,13 @@ export function MascotWidget({ currentPage, cartOpen }: MascotWidgetProps) {
   const [animClass, setAnimClass] = useState<'hop' | 'wave' | ''>('');
   const [onRight, setOnRight] = useState(false);
   const [wbPos, setWbPos] = useState({ left: 12, bottom: 140, tx: '40px' });
+  const [layoutMetrics, setLayoutMetrics] = useState(() => ({
+    vw: typeof document !== 'undefined' ? document.documentElement.clientWidth : 1024,
+    compact:
+      typeof window !== 'undefined'
+        ? window.matchMedia('(max-width: 760px), (hover: none)').matches
+        : false,
+  }));
 
   const mcRef = useRef<HTMLDivElement>(null);
   const mciRef = useRef<HTMLDivElement>(null);
@@ -36,6 +43,23 @@ export function MascotWidget({ currentPage, cartOpen }: MascotWidgetProps) {
     document.body.classList.toggle('mcoff', hidden);
     return () => document.body.classList.remove('mcoff');
   }, [hidden]);
+
+  useEffect(() => {
+    document.body.classList.toggle('mcright', onRight && !hidden);
+    return () => document.body.classList.remove('mcright');
+  }, [onRight, hidden]);
+
+  useEffect(() => {
+    const updateMetrics = () => {
+      setLayoutMetrics({
+        vw: document.documentElement.clientWidth,
+        compact: window.matchMedia('(max-width: 760px), (hover: none)').matches,
+      });
+    };
+    updateMetrics();
+    window.addEventListener('resize', updateMetrics);
+    return () => window.removeEventListener('resize', updateMetrics);
+  }, []);
 
   // Move mascot left/right when switching pages
   useEffect(() => {
@@ -197,10 +221,9 @@ export function MascotWidget({ currentPage, cartOpen }: MascotWidgetProps) {
       `${text} (Dari halaman ${currentPage})`
     )}`;
 
-  const leftPx =
-    onRight && typeof document !== 'undefined'
-      ? Math.max(16, document.documentElement.clientWidth - 96 - 72)
-      : 16;
+  const mcWidth = layoutMetrics.compact ? 72 : 96;
+  const edgeGap = 16;
+  const leftPx = onRight ? Math.max(edgeGap, layoutMetrics.vw - mcWidth - edgeGap) : edgeGap;
 
   return (
     <>
@@ -287,7 +310,7 @@ export function MascotWidget({ currentPage, cartOpen }: MascotWidgetProps) {
         ref={mcRef}
         className={`mc${hidden ? ' off' : ''}${wbOpen ? ' wopen' : ''}${
           showHint ? ' hint' : ''
-        }`}
+        }${onRight ? ' right' : ''}`}
         id="mc"
         style={{ left: `${leftPx}px` }}
       >

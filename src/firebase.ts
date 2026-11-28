@@ -212,7 +212,13 @@ export async function saveUserOrderDoc(uid: string, inv: InvoiceRecord): Promise
     name: safeName.length >= 2 ? safeName : 'Pembeli CCN',
     addr: safeAddr.length >= 3 ? safeAddr : '-',
     method: inv.method,
-    status: inv.status || (inv.method === 'QRIS' ? 'Sudah dibayar (QRIS)' : 'Menunggu pembayaran'),
+    status:
+      inv.status ||
+      (inv.method === 'QRIS'
+        ? 'Sudah dibayar (QRIS)'
+        : inv.method === 'E-Wallet DANA'
+          ? 'Sudah dibayar (DANA)'
+          : 'Menunggu pembayaran'),
     items: boundedItems,
     sub: Math.max(0, Number(inv.sub) || 0),
     disc: Math.max(0, Number(inv.disc) || 0),

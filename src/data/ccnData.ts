@@ -30,6 +30,10 @@ export function assetUrl(path: string): string {
 
 export const ADMIN_EMAIL = 'www.charlesindigo@gmail.com';
 export const WA_NUMBER = '6285156249864';
+export const DANA_NUMBER = '085156249864';
+export const DANA_DISPLAY = '0851-5624-9864';
+export const DANA_OWNER_NAME = 'CCN (Creative Craft Nation)';
+export const DANA_DEEP_LINK = 'https://link.dana.id/';
 export const QRIS_IMAGE = assetUrl(
   '/assets/aistudio/WhatsApp_Image_2026-11-21_at_17.04.15_4815362e.jpeg'
 );
@@ -101,7 +105,7 @@ export const DEFAULT_FAQS: FaqItemData[] = [
     id: 'faq_4',
     question: 'Metode pembayaran apa yang tersedia?',
     answer:
-      'QRIS resmi CCN (nomor pesanan terbit otomatis setelah pembayaran QRIS selesai), e-wallet (GoPay, DANA), virtual account bank, dan kartu debit/kredit.',
+      'QRIS resmi CCN dan E-Wallet DANA (0851-5624-9864) dengan nomor pesanan yang diterbitkan setelah pembayaran selesai, serta opsi virtual account bank dan kartu debit/kredit.',
     sortOrder: 4,
     active: true,
   },
@@ -358,6 +362,7 @@ export const INITIAL_FORUM: ForumEntry[] = [
 export interface TeamMember {
   name: string;
   nim: string;
+  role: string;
   initials: string;
   c1: string;
   c2: string;
@@ -372,6 +377,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     name: 'Chintya L. Sihotang',
     nim: '2531010',
+    role: 'OWNER',
     initials: 'CLS',
     c1: '#818cf8',
     c2: '#4f46e5',
@@ -383,6 +389,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     name: 'Chrisyen J.V.',
     nim: '2531003',
+    role: 'OWNER DEVELOPER',
     initials: 'CJV',
     c1: '#38bdf8',
     c2: '#0369a1',
@@ -395,6 +402,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     name: 'Nadya D. Tambunan',
     nim: '2531008',
+    role: 'OWNER',
     initials: 'NDT',
     c1: '#f472b6',
     c2: '#be185d',

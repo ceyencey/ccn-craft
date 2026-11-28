@@ -42,7 +42,7 @@ export function TeamZoomSection() {
   }, []);
 
   const openZ = useCallback(
-    (src: HTMLElement, name: string, nim: string, col: string) => {
+    (src: HTMLElement, name: string, nim: string, role: string, col: string) => {
       if (activeZoomRef.current) return;
       const ov = overlayRef.current;
       if (!ov) return;
@@ -88,7 +88,7 @@ export function TeamZoomSection() {
         const bEl = cap.querySelector('b');
         const spanEl = cap.querySelector('span');
         if (bEl) bEl.textContent = name;
-        if (spanEl) spanEl.textContent = `NIM ${nim} · Anggota Kelompok CCN`;
+        if (spanEl) spanEl.textContent = `${role} · NIM ${nim}`;
         cap.style.top = `${g.cy + g.h / 2 + 24}px`;
       }
       if (zg) {
@@ -198,12 +198,14 @@ export function TeamZoomSection() {
           }
           tabIndex={0}
           role="button"
-          aria-label={`Lihat ${member.name}`}
-          onClick={(e) => openZ(e.currentTarget, member.name, member.nim, member.c1)}
+          aria-label={`Lihat ${member.name} (${member.role})`}
+          onClick={(e) =>
+            openZ(e.currentTarget, member.name, member.nim, member.role, member.c1)
+          }
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              openZ(e.currentTarget, member.name, member.nim, member.c1);
+              openZ(e.currentTarget, member.name, member.nim, member.role, member.c1);
             }
           }}
         >
@@ -250,6 +252,7 @@ export function TeamZoomSection() {
             )}
           </div>
           <div className="tn">{member.name}</div>
+          <div className="trole">{member.role}</div>
           <div className="tnim">{member.nim}</div>
           <div className="lg tlg" role="img" aria-label="Logo CCN" />
         </div>

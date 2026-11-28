@@ -178,7 +178,12 @@ export async function renderReceiptCanvas(v: InvoiceRecord): Promise<HTMLCanvasE
   x.fillText(v.method, pad, ty);
   x.font = '800 22px ' + SF;
   x.fillText(
-    v.status || (v.method === 'QRIS' ? 'Sudah dibayar (QRIS)' : 'Menunggu pembayaran'),
+    v.status ||
+      (v.method === 'QRIS'
+        ? 'Sudah dibayar (QRIS)'
+        : v.method === 'E-Wallet DANA'
+          ? 'Sudah dibayar (DANA)'
+          : 'Menunggu pembayaran'),
     pad + 480,
     ty
   );

@@ -20,6 +20,9 @@ import {
   BAG_VARIANTS,
   BagProduct,
   CartItem,
+  DANA_DEEP_LINK,
+  DANA_DISPLAY,
+  DANA_NUMBER,
   DEFAULT_FAQS,
   DEFAULT_SITE_CONFIG,
   FaqItemData,
@@ -533,9 +536,12 @@ export default function App() {
   };
 
   const handleCheckoutComplete = async (inv: InvoiceRecord) => {
-    // Save to track history (QRIS payments are already paid upon confirmation)
+    // Save to track history (QRIS & E-Wallet DANA payments are recorded as paid upon confirmation)
     const newTrack: TrackOrderRecord = {
-      ts: inv.method === 'QRIS' ? Date.now() - 31000 : Date.now(),
+      ts:
+        inv.method === 'QRIS' || inv.method === 'E-Wallet DANA'
+          ? Date.now() - 31000
+          : Date.now(),
       name: inv.name,
       total: inv.total,
       method: inv.method,
@@ -753,6 +759,7 @@ export default function App() {
         open={cartOpen}
         cart={cart}
         user={currentUser}
+        whatsappNumber={siteConfig.whatsapp}
         onClose={() => setCartOpen(false)}
         onRemoveItem={(idx) => {
           const next = [...cart];
@@ -774,6 +781,7 @@ export default function App() {
 
       <InvoiceModal
         invoice={activeInvoice}
+        whatsappNumber={siteConfig.whatsapp}
         onClose={() => setActiveInvoice(null)}
         onViewImage={async (inv) => {
           const canvas = await renderReceiptCanvas(inv);
@@ -1005,7 +1013,7 @@ export default function App() {
                 <div className="st">3</div>
                 <b>Isi data &amp; bayar</b>
                 <p className="tag">
-                  Lengkapi nama dan alamat, lalu bayar. Khusus QRIS, nomor pesanan terbit otomatis setelah pembayaran selesai.
+                  Lengkapi nama dan alamat, lalu bayar lewat QRIS atau E-Wallet DANA ({DANA_DISPLAY}). Nomor pesanan terbit otomatis setelah konfirmasi bayar.
                 </p>
               </div>
               <div className="card">
@@ -1378,18 +1386,43 @@ export default function App() {
                       <path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V6a2 2 0 0 1 2-2h12M16 14h3" />
                     </svg>
                   </span>
-                  E-wallet
+                  E-Wallet DANA
                 </h3>
                 <p>
-                  Mendukung metode dompet digital yang tersedia pada penyedia pembayaran, seperti GoPay atau DANA sesuai konfigurasi.
+                  Transfer langsung ke nomor DANA resmi CCN: <b>{DANA_DISPLAY}</b>. Saat memilih E-Wallet DANA di checkout, nomor otomatis disalin dan diarahkan ke aplikasi DANA.
                 </p>
-                <div className="chips">
-                  <span className="chip" style={{ background: '#00AED6' }}>
-                    GoPay
-                  </span>
+                <div className="chips" style={{ alignItems: 'center', gap: 8 }}>
                   <span className="chip" style={{ background: '#118EEA' }}>
-                    DANA
+                    DANA · {DANA_DISPLAY}
                   </span>
+                  <button
+                    type="button"
+                    className="btn o"
+                    style={{ padding: '6px 12px', fontSize: 13 }}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(DANA_NUMBER);
+                        showToast(`Nomor DANA ${DANA_DISPLAY} disalin.`);
+                      } catch {
+                        showToast(`Salin nomor DANA: ${DANA_DISPLAY}`);
+                      }
+                    }}
+                  >
+                    Salin No. DANA
+                  </button>
+                  <a
+                    href={DANA_DEEP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn o"
+                    style={{ padding: '6px 12px', fontSize: 13 }}
+                    onClick={() => {
+                      navigator.clipboard?.writeText(DANA_NUMBER).catch(() => undefined);
+                      showToast(`Nomor DANA ${DANA_DISPLAY} disalin. Membuka DANA...`);
+                    }}
+                  >
+                    Buka DANA
+                  </a>
                 </div>
               </div>
               <div className="card">

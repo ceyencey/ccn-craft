@@ -81,6 +81,7 @@
           "description": "Selected payment method.",
           "enum": [
             "QRIS",
+            "E-Wallet DANA",
             "E-Wallet (GoPay / DANA)",
             "Virtual Account (transfer bank)",
             "Kartu Debit/Kredit"
@@ -92,6 +93,7 @@
           "description": "Order fulfillment and payment status.",
           "enum": [
             "Sudah dibayar (QRIS)",
+            "Sudah dibayar (DANA)",
             "Menunggu pembayaran",
             "Dibayar",
             "Dikemas",

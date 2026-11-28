@@ -45,12 +45,21 @@ function getOrderStatusMeta(status?: string, method?: string): StatusMeta {
     return { label: 'Sudah dibayar (QRIS)', tone: 'paid' };
   }
 
+  if (method === 'E-Wallet DANA') {
+    return { label: 'Sudah dibayar (DANA)', tone: 'paid' };
+  }
+
   return { label: raw || 'Menunggu pembayaran', tone: 'pending' };
 }
 
 function toUserOrder(d: StoredOrderDoc): UserOrder {
   const status =
-    d.status || (d.method === 'QRIS' ? 'Sudah dibayar (QRIS)' : 'Menunggu pembayaran');
+    d.status ||
+    (d.method === 'QRIS'
+      ? 'Sudah dibayar (QRIS)'
+      : d.method === 'E-Wallet DANA'
+        ? 'Sudah dibayar (DANA)'
+        : 'Menunggu pembayaran');
   return {
     no: d.no,
     t: d.total,

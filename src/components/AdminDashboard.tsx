@@ -57,6 +57,7 @@ type AdminTab = 'konten' | 'produk' | 'pesanan' | 'faq';
 const ORDER_STATUS_OPTIONS = [
   'Menunggu pembayaran',
   'Sudah dibayar (QRIS)',
+  'Sudah dibayar (DANA)',
   'Dibayar',
   'Dikemas',
   'Dikirim',
@@ -811,7 +812,11 @@ export function AdminDashboard({
               {filteredOrders.map((o) => {
                 const curStatus =
                   o.status ||
-                  (o.method === 'QRIS' ? 'Sudah dibayar (QRIS)' : 'Menunggu pembayaran');
+                  (o.method === 'QRIS'
+                    ? 'Sudah dibayar (QRIS)'
+                    : o.method === 'E-Wallet DANA'
+                      ? 'Sudah dibayar (DANA)'
+                      : 'Menunggu pembayaran');
                 const isPaid =
                   curStatus.includes('Sudah dibayar') ||
                   curStatus === 'Dibayar' ||

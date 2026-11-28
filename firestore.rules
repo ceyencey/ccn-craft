@@ -117,10 +117,10 @@ service cloud.firestore {
         data.addr.size() <= 500 &&
         data.method is string &&
         data.method.size() <= 64 &&
-        data.method in ['QRIS', 'E-Wallet (GoPay / DANA)', 'Virtual Account (transfer bank)', 'Kartu Debit/Kredit'] &&
+        data.method in ['QRIS', 'E-Wallet DANA', 'E-Wallet (GoPay / DANA)', 'Virtual Account (transfer bank)', 'Kartu Debit/Kredit'] &&
         data.status is string &&
         data.status.size() <= 40 &&
-        data.status in ['Sudah dibayar (QRIS)', 'Menunggu pembayaran', 'Dibayar', 'Dikemas', 'Dikirim', 'Tiba'] &&
+        data.status in ['Sudah dibayar (QRIS)', 'Sudah dibayar (DANA)', 'Menunggu pembayaran', 'Dibayar', 'Dikemas', 'Dikirim', 'Tiba'] &&
         data.items is list &&
         data.items.size() >= 1 &&
         data.items.size() <= 20 &&

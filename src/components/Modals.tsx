@@ -12,6 +12,10 @@ import {
   BAG_VARIANTS,
   BagProduct,
   CartItem,
+  DANA_DEEP_LINK,
+  DANA_DISPLAY,
+  DANA_NUMBER,
+  DANA_OWNER_NAME,
   InvoiceRecord,
   PRODUCTS,
   QRIS_IMAGE,
@@ -781,6 +785,7 @@ interface CartModalProps {
   open: boolean;
   cart: CartItem[];
   user: AuthUser | null;
+  whatsappNumber?: string;
   onClose: () => void;
   onRemoveItem: (index: number) => void;
   onOpenAuthLogin: () => void;
@@ -790,7 +795,15 @@ interface CartModalProps {
   onToast: (msg: string) => void;
 }
 
-interface PendingQrisOrder {
+function normalizeWaPhone(raw?: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return WA_NUMBER;
+  if (digits.startsWith('0')) return '62' + digits.slice(1);
+  if (digits.startsWith('8')) return '62' + digits;
+  return digits;
+}
+
+interface PendingPaymentOrder {
   name: string;
   addr: string;
   sub: number;
@@ -803,6 +816,7 @@ export function CartModal({
   open,
   cart,
   user,
+  whatsappNumber,
   onClose,
   onRemoveItem,
   onOpenAuthLogin,
@@ -818,7 +832,9 @@ export function CartModal({
   const [cadr, setCadr] = useState('');
   const [payMethod, setPayMethod] = useState('QRIS');
   const [checkoutError, setCheckoutError] = useState('');
-  const [qrisPending, setQrisPending] = useState<PendingQrisOrder | null>(null);
+  const [qrisPending, setQrisPending] = useState<PendingPaymentOrder | null>(null);
+  const [danaPending, setDanaPending] = useState<PendingPaymentOrder | null>(null);
+  const [danaCopyMsg, setDanaCopyMsg] = useState('');
   const [completedInv, setCompletedInv] = useState<InvoiceRecord | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string>('');
   const [copyStatus, setCopyStatus] = useState('');
@@ -826,14 +842,19 @@ export function CartModal({
   useEffect(() => {
     if (open) {
       setQrisPending(null);
+      setDanaPending(null);
+      setDanaCopyMsg('');
       setCompletedInv(null);
       setReceiptUrl('');
       setCheckoutError('');
       setCopyStatus('');
-      if (user) {
-        setCname((prev) => prev || user.name);
-        setCadr((prev) => prev || user.addr || '');
-      }
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && user) {
+      setCname((prev) => prev || user.name);
+      setCadr((prev) => prev || user.addr || '');
     }
   }, [open, user]);
 
@@ -892,6 +913,8 @@ export function CartModal({
     };
 
     setQrisPending(null);
+    setDanaPending(null);
+    setDanaCopyMsg('');
     setCompletedInv(inv);
     setAppliedVoucher('');
     setVoucherInput('');
@@ -901,6 +924,17 @@ export function CartModal({
     const canvas = await renderReceiptCanvas(inv);
     setReceiptUrl(canvas.toDataURL('image/png'));
     return no;
+  };
+
+  const copyDanaText = async (value: string, successText: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setDanaCopyMsg(successText);
+      onToast(successText);
+    } catch {
+      setDanaCopyMsg(`Salin manual: ${value}`);
+      onToast(`Salin manual: ${value}`);
+    }
   };
 
   const handleCheckout = async () => {
@@ -939,6 +973,29 @@ export function CartModal({
       return;
     }
 
+    if (payMethod === 'E-Wallet DANA') {
+      try {
+        await navigator.clipboard?.writeText(DANA_NUMBER);
+        setDanaCopyMsg(
+          `Nomor DANA ${DANA_DISPLAY} otomatis disalin. Klik "Buka Aplikasi DANA" di bawah untuk melakukan transfer.`
+        );
+      } catch {
+        setDanaCopyMsg(
+          `Catat nomor DANA ${DANA_DISPLAY}, lalu klik "Buka Aplikasi DANA" di bawah.`
+        );
+      }
+      setDanaPending({
+        name,
+        addr,
+        sub: subtotal,
+        disc: discVoucher,
+        total: grandTotal,
+        items: cart.map((c) => ({ ...c })),
+      });
+      onToast(`Nomor DANA ${DANA_DISPLAY} siap digunakan. Lanjutkan pembayaran di DANA.`);
+      return;
+    }
+
     await finalizeOrder({
       name,
       addr,
@@ -966,6 +1023,21 @@ export function CartModal({
     onToast(`Pembayaran QRIS berhasil! Nomor pesanan ${no} diterbitkan.`);
   };
 
+  const handleConfirmDanaPaid = async () => {
+    if (!danaPending) return;
+    const no = await finalizeOrder({
+      name: danaPending.name,
+      addr: danaPending.addr,
+      method: 'E-Wallet DANA',
+      status: 'Sudah dibayar (DANA)',
+      items: danaPending.items,
+      sub: danaPending.sub,
+      disc: danaPending.disc,
+      total: danaPending.total,
+    });
+    onToast(`Pembayaran E-Wallet DANA dicatat! Nomor pesanan ${no} diterbitkan.`);
+  };
+
   const handleCopyReceipt = async () => {
     if (!completedInv) return;
     try {
@@ -987,18 +1059,24 @@ export function CartModal({
   const paymentGuide = (m: string) => {
     if (m === 'QRIS')
       return 'Pembayaran melalui QRIS resmi CCN telah dikonfirmasi dan nomor pesanan sudah diterbitkan secara otomatis.';
-    if (m.startsWith('E-Wallet'))
-      return 'Kamu akan diarahkan ke aplikasi GoPay atau DANA untuk konfirmasi (contoh).';
+    if (m === 'E-Wallet DANA' || m.startsWith('E-Wallet'))
+      return `Transfer ke DANA resmi CCN (${DANA_DISPLAY}) telah dicatat dan nomor pesanan sudah diterbitkan. Lampirkan bukti transfer DANA bersama struk di chat WhatsApp untuk verifikasi admin.`;
     if (m.startsWith('Virtual'))
       return 'Nomor virtual account dibuat khusus untuk transaksi ini: 8801 2345 6789 0123 (contoh).';
     return 'Kamu akan diarahkan ke halaman pembayaran kartu yang aman (contoh).';
   };
 
+  const targetWaNumber = normalizeWaPhone(whatsappNumber);
+
   const waOrderHref = completedInv
-    ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
+    ? `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
         `Halo CCN, saya ingin konfirmasi pesanan ${completedInv.no}\nNama: ${completedInv.name}\nAlamat: ${completedInv.addr}\nTotal: ${rp(
           completedInv.total
-        )}\nPembayaran: ${completedInv.method}\n(Struk pembelian saya lampirkan di chat ini)`
+        )}\nPembayaran: ${completedInv.method}${
+          completedInv.method === 'E-Wallet DANA' ? ` (ke No. DANA ${DANA_DISPLAY})` : ''
+        }\n(Struk pembelian${
+          completedInv.method === 'E-Wallet DANA' ? ' & bukti transfer DANA' : ''
+        } saya lampirkan di chat ini)`
       )}`
     : '#';
 
@@ -1007,7 +1085,9 @@ export function CartModal({
       className={`modal${open ? ' on' : ''}`}
       id="cm"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !completedInv && !qrisPending && !danaPending) {
+          onClose();
+        }
       }}
     >
       <div className="card">
@@ -1018,7 +1098,7 @@ export function CartModal({
           </button>
         </div>
 
-        {!completedInv && !qrisPending && (
+        {!completedInv && !qrisPending && !danaPending && (
           <>
             <div id="ci" style={{ margin: '12px 0' }}>
               {cart.length ? (
@@ -1128,10 +1208,41 @@ export function CartModal({
                   <label>Metode pembayaran</label>
                   <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
                     <option>QRIS</option>
-                    <option>E-Wallet (GoPay / DANA)</option>
+                    <option>E-Wallet DANA</option>
                     <option>Virtual Account (transfer bank)</option>
                     <option>Kartu Debit/Kredit</option>
                   </select>
+
+                  {payMethod === 'E-Wallet DANA' && (
+                    <div
+                      className="card"
+                      style={{
+                        background: 'rgba(17, 142, 234, 0.08)',
+                        borderColor: '#118EEA',
+                        margin: '4px 0 12px',
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <div className="row" style={{ gap: 8 }}>
+                        <div>
+                          <span className="tag" style={{ display: 'block', fontSize: 12 }}>
+                            Transfer Langsung ke DANA Resmi CCN
+                          </span>
+                          <b style={{ fontSize: 15, color: '#118EEA' }}>{DANA_DISPLAY}</b>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn o"
+                          style={{ padding: '5px 10px', fontSize: 12 }}
+                          onClick={() =>
+                            copyDanaText(DANA_NUMBER, `Nomor DANA ${DANA_DISPLAY} disalin.`)
+                          }
+                        >
+                          Salin No. DANA
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {checkoutError && <p className="amsg">{checkoutError}</p>}
 
@@ -1141,12 +1252,18 @@ export function CartModal({
                     type="button"
                     onClick={handleCheckout}
                   >
-                    {payMethod === 'QRIS' ? 'Lanjut ke Pembayaran QRIS' : 'Bayar Sekarang'}
+                    {payMethod === 'QRIS'
+                      ? 'Lanjut ke Pembayaran QRIS'
+                      : payMethod === 'E-Wallet DANA'
+                        ? 'Lanjut & Buka Pembayaran DANA'
+                        : 'Bayar Sekarang'}
                   </button>
                   <p className="tag" style={{ marginTop: 8 }}>
                     {payMethod === 'QRIS'
                       ? 'Khusus QRIS: pindai QRIS resmi CCN terlebih dahulu. Nomor pesanan akan diterbitkan otomatis setelah pembayaran QRIS selesai.'
-                      : 'Catatan: metode selain QRIS bersifat simulasi. Untuk transaksi nyata, hubungkan ke payment gateway.'}
+                      : payMethod === 'E-Wallet DANA'
+                        ? `Khusus E-Wallet DANA: nomor DANA (${DANA_DISPLAY}) akan disalin otomatis dan halaman pembayaran DANA dibuka. Nomor pesanan diterbitkan setelah transfer dikonfirmasi.`
+                        : 'Catatan: metode selain QRIS & DANA bersifat simulasi. Untuk transaksi nyata otomatis, hubungkan ke payment gateway.'}
                   </p>
                 </>
               )}
@@ -1235,13 +1352,171 @@ export function CartModal({
           </div>
         )}
 
+        {danaPending && !completedInv && (
+          <div style={{ marginTop: 12 }}>
+            <div className="card">
+              <div className="row" style={{ marginBottom: 8 }}>
+                <b>Pembayaran E-Wallet DANA</b>
+                <span className="pill">Belum Ada No. Pesanan</span>
+              </div>
+              <p className="tag" style={{ margin: '0 0 10px' }}>
+                Transfer ke nomor DANA resmi CCN sebesar <b>{rp(danaPending.total)}</b>, lalu kembali ke halaman ini dan klik tombol konfirmasi agar nomor pesanan &amp; struk diterbitkan.
+              </p>
+
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 14,
+                  padding: 16,
+                  border: '2px solid #118EEA',
+                  marginBottom: 12,
+                  color: '#1c1917',
+                }}
+              >
+                <div className="row" style={{ marginBottom: 8 }}>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      background: '#118EEA',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      padding: '3px 10px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    DANA
+                  </span>
+                  <span style={{ fontSize: 12, color: '#6b6560' }}>{DANA_OWNER_NAME}</span>
+                </div>
+
+                <div style={{ fontSize: 12, color: '#6b6560' }}>Nomor Tujuan DANA</div>
+                <div
+                  className="row"
+                  style={{ marginTop: 2, marginBottom: 10, alignItems: 'center', gap: 8 }}
+                >
+                  <b style={{ fontSize: 22, letterSpacing: '0.03em', color: '#118EEA' }}>
+                    {DANA_DISPLAY}
+                  </b>
+                  <button
+                    type="button"
+                    className="btn o"
+                    style={{ padding: '6px 12px', fontSize: 12 }}
+                    onClick={() =>
+                      copyDanaText(DANA_NUMBER, `Nomor DANA ${DANA_DISPLAY} berhasil disalin.`)
+                    }
+                  >
+                    Salin No. DANA
+                  </button>
+                </div>
+
+                <hr style={{ borderColor: '#e7e5e4', margin: '10px 0' }} />
+
+                <div style={{ fontSize: 12, color: '#6b6560' }}>Total Tagihan</div>
+                <div
+                  className="row"
+                  style={{ marginTop: 2, alignItems: 'center', gap: 8 }}
+                >
+                  <b style={{ fontSize: 18, color: '#1c1917' }}>{rp(danaPending.total)}</b>
+                  <button
+                    type="button"
+                    className="btn o"
+                    style={{ padding: '6px 12px', fontSize: 12 }}
+                    onClick={() =>
+                      copyDanaText(
+                        String(danaPending.total),
+                        `Nominal ${rp(danaPending.total)} berhasil disalin.`
+                      )
+                    }
+                  >
+                    Salin Nominal
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: '#6b6560', marginTop: 6 }}>
+                  Pembeli: {danaPending.name}
+                </div>
+              </div>
+
+              {danaCopyMsg && (
+                <p className="tag" style={{ margin: '0 0 10px', color: '#118EEA', fontWeight: 600 }}>
+                  {danaCopyMsg}
+                </p>
+              )}
+
+              <ol
+                className="tag"
+                style={{ margin: '0 0 12px', paddingLeft: 18, lineHeight: 1.6 }}
+              >
+                <li>
+                  Klik <b>Buka Aplikasi DANA Sekarang</b> (nomor <b>{DANA_DISPLAY}</b> sudah
+                  disalin ke clipboard).
+                </li>
+                <li>
+                  Di aplikasi DANA, pilih menu <b>Kirim</b> &rarr; tempel nomor{' '}
+                  <b>{DANA_DISPLAY}</b> dan masukkan nominal <b>{rp(danaPending.total)}</b>.
+                </li>
+                <li>
+                  Selesaikan transfer, simpan tangkapan layar bukti bayar, lalu klik{' '}
+                  <b>Saya Sudah Bayar via DANA</b> di bawah.
+                </li>
+              </ol>
+
+              <a
+                className="btn"
+                style={{
+                  width: '100%',
+                  textAlign: 'center',
+                  background: '#118EEA',
+                  borderColor: '#118EEA',
+                  marginBottom: 8,
+                  display: 'block',
+                }}
+                href={DANA_DEEP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  navigator.clipboard?.writeText(DANA_NUMBER).catch(() => undefined);
+                  setDanaCopyMsg(
+                    `Nomor DANA ${DANA_DISPLAY} disalin — silakan tempel di aplikasi DANA.`
+                  );
+                  onToast(`Nomor DANA ${DANA_DISPLAY} disalin. Membuka DANA...`);
+                }}
+              >
+                Buka Aplikasi DANA Sekarang
+              </a>
+
+              <button
+                className="btn"
+                style={{ width: '100%' }}
+                type="button"
+                onClick={handleConfirmDanaPaid}
+              >
+                Saya Sudah Bayar via DANA
+              </button>
+              <button
+                className="btn o"
+                style={{ width: '100%', marginTop: 8 }}
+                type="button"
+                onClick={() => {
+                  setDanaPending(null);
+                  setDanaCopyMsg('');
+                }}
+              >
+                Kembali ke Keranjang
+              </button>
+            </div>
+          </div>
+        )}
+
         {completedInv && (
           <div id="rs" style={{ marginTop: 12 }}>
             <div className="card">
               <b>
                 {completedInv.method === 'QRIS'
                   ? `Pembayaran QRIS berhasil, ${completedInv.name}!`
-                  : `Pesanan diterima, ${completedInv.name}!`}
+                  : completedInv.method === 'E-Wallet DANA'
+                    ? `Pembayaran DANA dicatat, ${completedInv.name}!`
+                    : `Pesanan diterima, ${completedInv.name}!`}
               </b>
               <p>
                 No. pesanan: <b>{completedInv.no}</b>
@@ -1317,11 +1592,17 @@ export function CartModal({
 /* ==================== INVOICE MODAL ==================== */
 interface InvoiceModalProps {
   invoice: InvoiceRecord | null;
+  whatsappNumber?: string;
   onClose: () => void;
   onViewImage: (inv: InvoiceRecord) => void;
 }
 
-export function InvoiceModal({ invoice, onClose, onViewImage }: InvoiceModalProps) {
+export function InvoiceModal({
+  invoice,
+  whatsappNumber,
+  onClose,
+  onViewImage,
+}: InvoiceModalProps) {
   useEffect(() => {
     if (!invoice) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1331,11 +1612,15 @@ export function InvoiceModal({ invoice, onClose, onViewImage }: InvoiceModalProp
     return () => window.removeEventListener('keydown', onKey);
   }, [invoice, onClose]);
 
+  const targetWaNumber = normalizeWaPhone(whatsappNumber);
+
   const waShareHref = invoice
-    ? `https://wa.me/?text=${encodeURIComponent(
-        `STRUK PEMBELIAN CCN\nNo. ${invoice.no}\n${invoice.date}\n\nPembeli: ${
+    ? `https://wa.me/${targetWaNumber}?text=${encodeURIComponent(
+        `Halo CCN, saya ingin konfirmasi pesanan ${invoice.no}\nTanggal: ${invoice.date}\n\nPembeli: ${
           invoice.name
-        }\n${invoice.items.map((i) => `- ${i.n} x${i.q} = ${rp(i.p * i.q)}`).join('\n')}${
+        }\nAlamat: ${invoice.addr}\n${invoice.items
+          .map((i) => `- ${i.n} x${i.q} = ${rp(i.p * i.q)}`)
+          .join('\n')}${
           invoice.disc ? `\nDiskon CCN10: -${rp(invoice.disc)}` : ''
         }\nTotal: ${rp(invoice.total)}\nPembayaran: ${invoice.method}`
       )}`
@@ -1426,7 +1711,11 @@ export function InvoiceModal({ invoice, onClose, onViewImage }: InvoiceModalProp
                   <br />
                   <b>
                     {invoice.status ||
-                      (invoice.method === 'QRIS' ? 'Sudah dibayar (QRIS)' : 'Menunggu pembayaran')}
+                      (invoice.method === 'QRIS'
+                        ? 'Sudah dibayar (QRIS)'
+                        : invoice.method === 'E-Wallet DANA'
+                          ? 'Sudah dibayar (DANA)'
+                          : 'Menunggu pembayaran')}
                   </b>
                 </div>
               </div>
@@ -1458,7 +1747,7 @@ export function InvoiceModal({ invoice, onClose, onViewImage }: InvoiceModalProp
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Bagikan lewat WhatsApp
+                Konfirmasi via WhatsApp
               </a>
               <button className="btn o" type="button" onClick={onClose}>
                 Tutup

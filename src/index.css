@@ -773,7 +773,7 @@ details p {
   }
 }
 
-@media (hover: none) {
+@media (max-width: 760px), (hover: none) {
   .mc {
     width: 72px;
   }
@@ -1140,6 +1140,17 @@ body.lock {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  transition: bottom 0.35s ease;
+}
+
+body.mcright:not(.mcoff) .fabs {
+  bottom: calc(122px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 760px), (hover: none) {
+  body.mcright:not(.mcoff) .fabs {
+    bottom: calc(98px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .fab {
@@ -1261,6 +1272,11 @@ body.lock {
 
 .mc.wopen .mchint {
   display: none;
+}
+
+.mc.right .mchint {
+  left: auto;
+  right: 0;
 }
 
 @keyframes hintin {
@@ -1677,7 +1693,7 @@ body.mcoff .fab.fab-wa {
 .tn {
   position: relative;
   z-index: 2;
-  margin-top: 20px;
+  margin-top: 14px;
   font-weight: 800;
   font-size: 17px;
   text-align: center;
@@ -1685,10 +1701,24 @@ body.mcoff .fab.fab-wa {
   line-height: 1.25;
 }
 
+.trole {
+  position: relative;
+  z-index: 2;
+  margin-top: 6px;
+  font: 800 10.5px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  background: rgba(255, 251, 235, 0.94);
+  color: #78350f;
+  padding: 4px 11px;
+  border-radius: 99px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+}
+
 .tnim {
   position: relative;
   z-index: 2;
-  margin-top: 8px;
+  margin-top: 6px;
   font: 600 12px system-ui, sans-serif;
   background: rgba(0, 0, 0, 0.24);
   padding: 4px 12px;
